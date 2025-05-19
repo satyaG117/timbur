@@ -1,0 +1,2 @@
+# timbur
+NodeJS logging library
