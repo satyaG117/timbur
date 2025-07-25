@@ -8,14 +8,26 @@ const logger = Logger.createLogger({
 })
 
 
-logger.debug("Hello world");
-logger.info("Hello world");
-setTimeout(()=>{
-    logger.fatal("Hello world");    
-},2000)
-logger.warn("Hello world");
-logger.error("Hello world");
-
-for(let i = 0 ; i < 500; i++){
-    logger.info("Hello this is a test message :-)");
+function c(){
+    logger.info("Hello World")
 }
+
+function b(){
+    c()
+}
+
+function a(){
+    b()
+}
+
+a()
+// logger.info("Hello world");
+// setTimeout(()=>{
+//     logger.fatal("Hello world");    
+// },2000)
+// logger.warn("Hello world");
+// logger.error("Hello world");
+
+// for(let i = 0 ; i < 500; i++){
+//     logger.info("Hello this is a test message :-)");
+// }
