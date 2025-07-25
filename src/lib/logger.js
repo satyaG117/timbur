@@ -4,7 +4,7 @@ const path = require('node:path')
 const { once } = require('node:events')
 
 const LogLevel = require('../utils/log-level');
-const { getAbsolutePath } = require('../utils/helpers')
+const { getAbsolutePath, getLogOrigin, getFileNameFriendlyISODateString } = require('../utils/helpers')
 const LoggerError = require('../utils/logger-error')
 const LoggerConfig = require('../config/logger-config');
 
@@ -94,7 +94,7 @@ class Logger {
     init() {
         fss.mkdirSync(this.#config.saveDirectoryPath, { recursive: true });
 
-        this.#currentLogFileName = `${this.#config.filePrefix}${Date.now()}${this.#config.filePostfix}.log`;
+        this.#currentLogFileName = `${this.#config.filePrefix}${getFileNameFriendlyISODateString()}${this.#config.filePostfix}.log`;
         const fullPath = path.join(this.#config.saveDirectoryPath, this.#currentLogFileName);
 
         this.#logFileStream = fss.createWriteStream(fullPath);
@@ -153,8 +153,9 @@ class Logger {
         // if the log level of message is below what is defined then ignore
         if (LogLevel.toInteger(logLevel) < this.#config.level) return;
 
+        const logOrigin = getLogOrigin();
         //prepare the log message
-        let logMessage = `[${new Date().toISOString()}]\t[${logLevel}] : \t${message}\n`
+        let logMessage = `[${new Date().toISOString()}]\t[${logLevel}]\t[${logOrigin}]: \t${message}\n`
 
         // if logfile is being rotated or if the internal buffer is full then write to external buffer
         if (this.#isRotating || this.#isInternalBufferFull || this.#isExternalBufferFlushing) {
@@ -189,7 +190,7 @@ class Logger {
         this.#logFileStream.end();
         await once(this.#logFileStream, 'finish');
 
-        this.#currentLogFileName = `${this.#config.filePrefix}${Date.now()}${this.#config.filePostfix}.log`;
+        this.#currentLogFileName = `${this.#config.filePrefix}${getFileNameFriendlyISODateString()}${this.#config.filePostfix}.log`;
         const fullPath = path.join(this.#config.saveDirectoryPath, this.#currentLogFileName);
         this.#logFileStream = fss.createWriteStream(fullPath)
         this.#currentFileCreationTime = Date.now();
