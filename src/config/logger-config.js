@@ -18,7 +18,7 @@ class LoggerConfig {
     /**
      * specifies whether to automatically log uncaught errors or not
      */
-    logUncaughtErrors = false;
+    logUncaughtExceptions = false;
 
     /**
      * this is where log files are saved

@@ -1,4 +1,4 @@
-const fs = require('node:fs/promises');
+// const fs = require('node:fs/promises');
 const fss = require('node:fs');
 const path = require('node:path')
 const { once } = require('node:events')
@@ -21,8 +21,8 @@ class Logger {
     #isExternalBufferFlushing = false;
     #externalBuffer = []
 
-    constructor(config) {
 
+    constructor(config) {
         if (!config) return;
 
         if ('level' in config) {
@@ -49,13 +49,14 @@ class Logger {
             }
         }
 
-        if ('logUncaughtErrors' in config) {
-            if (LoggerConfig.isBoolean(config.logUncaughtErrors)) {
-                this.#config.logUncaughtErrors = config.logUncaughtErrors;
+        if ('logUncaughtExceptions' in config) {
+            if (LoggerConfig.isBoolean(config.logUncaughtExceptions)) {
+                this.#config.logUncaughtExceptions = config.logUncaughtExceptions;
             } else {
-                throw new LoggerError("logUncaughtErrors option should be a boolean value");
+                throw new LoggerError("logUncaughtExceptions option should be a boolean value");
             }
         }
+
 
         if ('saveDirectoryPath' in config) {
             if (LoggerConfig.isValidDirectoryPath(config.saveDirectoryPath)) {
@@ -92,6 +93,7 @@ class Logger {
      * this method will do stuff like creating log directory and some other initializing stuff 
      * */
     init() {
+
         fss.mkdirSync(this.#config.saveDirectoryPath, { recursive: true });
 
         this.#currentLogFileName = `${this.#config.filePrefix}${getFileNameFriendlyISODateString()}${this.#config.filePostfix}.log`;
@@ -103,7 +105,31 @@ class Logger {
         this.#currentFileSize = 0;
         this.#currentFileCreationTime = Date.now();
 
+        process.on('uncaughtException', async (err)=>{
+            if(!this.#config.logUncaughtExceptions) return;
+
+            console.log(err.stack);
+            const stack = err.stack.split('\n');
+            const message = stack[0].trim();
+            const logOrigin = stack[stack.length - 8].trim();
+            await this.#log("ERROR",message.trim(), logOrigin.trim());
+            this.gracefulShutdown();
+        })
+
+
     }
+
+
+    async gracefulShutdown() {
+        // flush external buffer first and then wait for internal stream to clear up
+        await this.#flushExternalBuffer();
+        this.#logFileStream.end();
+        await once(this.#logFileStream, 'finish');
+        process.exit(0);
+
+    }
+
+
 
     async #flushExternalBuffer() {
         this.#isExternalBufferFlushing = true;
@@ -149,11 +175,14 @@ class Logger {
 
 
 
-    async #log(logLevel, message) {
+    async #log(logLevel, message, origin) {
         // if the log level of message is below what is defined then ignore
         if (LogLevel.toInteger(logLevel) < this.#config.level) return;
 
-        const logOrigin = getLogOrigin();
+        let logOrigin = origin;
+        if(!origin){
+            logOrigin = getLogOrigin();
+        }
         //prepare the log message
         let logMessage = `[${new Date().toISOString()}]\t[${logLevel}]\t[${logOrigin}]: \t${message}\n`
 
