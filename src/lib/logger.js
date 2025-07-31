@@ -1,4 +1,3 @@
-// const fs = require('node:fs/promises');
 const fss = require('node:fs');
 const path = require('node:path')
 const { once } = require('node:events')
@@ -90,7 +89,7 @@ class Logger {
 
 
     /**
-     * this method will do stuff like creating log directory and some other initializing stuff 
+     * this method will do stuff like creating log directory and creating the initial stream
      * */
     init() {
 
@@ -126,7 +125,6 @@ class Logger {
         this.#logFileStream.end();
         await once(this.#logFileStream, 'finish');
         process.exit(0);
-
     }
 
 
@@ -179,6 +177,7 @@ class Logger {
         // if the log level of message is below what is defined then ignore
         if (LogLevel.toInteger(logLevel) < this.#config.level) return;
 
+        // if the log origin isn't given then find out on your own
         let logOrigin = origin;
         if(!origin){
             logOrigin = getLogOrigin();
@@ -202,7 +201,7 @@ class Logger {
             // write to the stream and increase file size
             const ok = this.#writeToFile(logMessage);
 
-
+            // backpressure
             if (!ok) {
                 this.#isInternalBufferFull = true;
                 await once(this.#logFileStream, 'drain');
